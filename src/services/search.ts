@@ -1,4 +1,4 @@
-import Fuse from 'fuse.js'
+import Fuse, { type IFuseOptions } from 'fuse.js'
 import type { Song } from '../types'
 import { db } from './db'
 import { searchYouTube } from './youtube'
@@ -6,7 +6,7 @@ import { searchArchive } from './archive'
 import { searchFMA } from './fma'
 import { addSearchHistory } from './db'
 
-const fuseOptions: Fuse.IFuseOptions<Song> = {
+const fuseOptions: IFuseOptions<Song> = {
   keys: [
     { name: 'title', weight: 0.5 },
     { name: 'artist', weight: 0.3 },
