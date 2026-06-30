@@ -4,16 +4,16 @@ import { getArchiveStreamUrl } from '../../services/archive'
 
 declare global {
   interface Window {
-    YT: typeof YT
+    YT: any
     onYouTubeIframeAPIReady: () => void
-    _ytPlayer: YT.Player | null
+    _ytPlayer: any
     _archiveAudio: HTMLAudioElement | null
   }
 }
 
 export function AudioEngine() {
-  const { currentSong, isPlaying, volume, seek, progress, setProgress, setDuration, onSongEnd, onPlayStarted } = usePlayerStore()
-  const ytRef = useRef<YT.Player | null>(null)
+  const { currentSong, isPlaying, volume, progress, setProgress, setDuration, onSongEnd, onPlayStarted } = usePlayerStore()
+  const ytRef = useRef<any>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const seekPending = useRef<number | null>(null)
@@ -68,12 +68,12 @@ export function AudioEngine() {
           videoId: currentSong.videoId,
           playerVars: { autoplay: 1, controls: 0, rel: 0, modestbranding: 1 },
           events: {
-            onReady: (e) => {
+            onReady: (e: any) => {
               e.target.setVolume(volume * 100)
               if (isPlaying) e.target.playVideo()
               onPlayStarted()
             },
-            onStateChange: (e) => {
+            onStateChange: (e: any) => {
               if (e.data === window.YT.PlayerState.ENDED) onSongEnd()
               if (e.data === window.YT.PlayerState.PLAYING) {
                 const dur = ytRef.current?.getDuration() ?? 0
@@ -132,12 +132,12 @@ export function AudioEngine() {
 
   // Seek
   useEffect(() => {
-    if (seekPending.current === seek) return
-    seekPending.current = seek
+    if (seekPending.current === progress) return
+    seekPending.current = progress
     if (!currentSong) return
-    if (currentSong.source === 'youtube') ytRef.current?.seekTo?.(seek, true)
-    else if (audioRef.current) audioRef.current.currentTime = seek
-  }, [seek])
+    if (currentSong.source === 'youtube') ytRef.current?.seekTo?.(progress, true)
+    else if (audioRef.current) audioRef.current.currentTime = progress
+  }, [progress])
 
   // Progress ticker
   useEffect(() => {
