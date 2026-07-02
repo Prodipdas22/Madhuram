@@ -2,6 +2,8 @@
 
 A zero-cost Spotify-inspired music streaming platform that runs entirely on GitHub Pages.
 
+# Madhuram – Music Streaming Website
+
 ## Features
 
 - 🎵 Stream music from YouTube, Internet Archive, and Free Music Archive
