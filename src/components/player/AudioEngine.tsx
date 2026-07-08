@@ -6,152 +6,209 @@ declare global {
   interface Window {
     YT: any
     onYouTubeIframeAPIReady: () => void
-    _ytPlayer: any
-    _archiveAudio: HTMLAudioElement | null
+    _ytReady: boolean
+    _ytReadyCallbacks: (() => void)[]
   }
 }
 
+function onYTReady(cb: () => void) {
+  if (window._ytReady) { cb(); return }
+  window._ytReadyCallbacks = window._ytReadyCallbacks ?? []
+  window._ytReadyCallbacks.push(cb)
+}
+
 export function AudioEngine() {
-  const { currentSong, isPlaying, volume, progress, setProgress, setDuration, onSongEnd, onPlayStarted } = usePlayerStore()
+  const {
+    currentSong, isPlaying, volume, progress,
+    setProgress, setDuration, onSongEnd, onPlayStarted
+  } = usePlayerStore()
+
   const ytRef = useRef<any>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const seekPending = useRef<number | null>(null)
   const prevSongId = useRef<string | null>(null)
+  const isPlayingRef = useRef(isPlaying)
+  const volumeRef = useRef(volume)
+  const lastTickedProgress = useRef(0)
 
-  // Load YouTube IFrame API once
-  useEffect(() => {
-    if (window.YT) return
-    const tag = document.createElement('script')
-    tag.src = 'https://www.youtube.com/iframe_api'
-    document.head.appendChild(tag)
-    window.onYouTubeIframeAPIReady = () => {}
-  }, [])
+  useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
+  useEffect(() => { volumeRef.current = volume }, [volume])
 
   const destroyAudio = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.src = ''
+      audioRef.current.load()
       audioRef.current = null
-      window._archiveAudio = null
     }
   }, [])
 
   const destroyYT = useCallback(() => {
     if (ytRef.current) {
-      try { ytRef.current.destroy() } catch {}
+      try { ytRef.current.destroy() } catch (_) {}
       ytRef.current = null
-      window._ytPlayer = null
     }
     if (containerRef.current) containerRef.current.innerHTML = ''
   }, [])
 
-  // Handle song change
+  function buildAudio(url: string): HTMLAudioElement {
+    const audio = new Audio()
+    audio.crossOrigin = 'anonymous'
+    audio.preload = 'auto'
+    audio.volume = volumeRef.current
+    audio.src = url
+    audio.addEventListener('loadedmetadata', () => setDuration(audio.duration))
+    audio.addEventListener('ended', onSongEnd)
+    audio.addEventListener('canplaythrough', () => {
+      onPlayStarted()
+      if (isPlayingRef.current) audio.play().catch(() => {})
+    })
+    audio.addEventListener('error', () => {
+      console.warn('Audio error for', url)
+      onSongEnd()
+    })
+    return audio
+  }
+
+  // ── Song change ──────────────────────────────────────────────────
   useEffect(() => {
     if (!currentSong || currentSong.id === prevSongId.current) return
     prevSongId.current = currentSong.id
-
+    lastTickedProgress.current = 0
     destroyAudio()
     destroyYT()
     setProgress(0)
     setDuration(0)
 
-    if (currentSong.source === 'youtube' && currentSong.videoId) {
+    // ── Deezer preview (30s MP3) ──────────────────────────────────
+    if (currentSong.source === 'deezer' && currentSong.previewUrl) {
+      audioRef.current = buildAudio(currentSong.previewUrl)
+
+    // ── YouTube embed ─────────────────────────────────────────────
+    } else if (currentSong.source === 'youtube' && currentSong.videoId) {
+      const divId = `yt-${Date.now()}`
       const div = document.createElement('div')
-      div.id = `yt-${Date.now()}`
+      div.id = divId
       containerRef.current?.appendChild(div)
 
-      const initPlayer = () => {
-        ytRef.current = new window.YT.Player(div.id, {
-          height: '1',
-          width: '1',
+      const createPlayer = () => {
+        ytRef.current = new window.YT.Player(divId, {
           videoId: currentSong.videoId,
-          playerVars: { autoplay: 1, controls: 0, rel: 0, modestbranding: 1 },
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            enablejsapi: 1,
+            origin: window.location.origin,
+          },
           events: {
             onReady: (e: any) => {
-              e.target.setVolume(volume * 100)
-              if (isPlaying) e.target.playVideo()
+              try { e.target.setPlaybackQuality('hd720') } catch (_) {}
+              e.target.setVolume(Math.round(volumeRef.current * 100))
+              const dur = e.target.getDuration?.() ?? 0
+              if (dur > 0) setDuration(dur)
               onPlayStarted()
+              if (isPlayingRef.current) e.target.playVideo()
             },
             onStateChange: (e: any) => {
-              if (e.data === window.YT.PlayerState.ENDED) onSongEnd()
-              if (e.data === window.YT.PlayerState.PLAYING) {
-                const dur = ytRef.current?.getDuration() ?? 0
-                setDuration(dur)
+              const S = window.YT?.PlayerState
+              if (e.data === S?.ENDED) onSongEnd()
+              if (e.data === S?.PLAYING) {
+                const dur = ytRef.current?.getDuration?.() ?? 0
+                if (dur > 0) setDuration(dur)
               }
-            }
+            },
+            onError: () => onSongEnd(),
           }
         })
-        window._ytPlayer = ytRef.current
       }
+      onYTReady(createPlayer)
 
-      if (window.YT?.Player) initPlayer()
-      else {
-        const prev = window.onYouTubeIframeAPIReady
-        window.onYouTubeIframeAPIReady = () => { prev?.(); initPlayer() }
-      }
+    // ── Internet Archive ──────────────────────────────────────────
     } else if (currentSong.source === 'archive' && currentSong.archiveId) {
       getArchiveStreamUrl(currentSong.archiveId).then(url => {
-        if (!url) return
-        const audio = new Audio(url)
-        audio.volume = volume
-        audioRef.current = audio
-        window._archiveAudio = audio
-        audio.addEventListener('loadedmetadata', () => setDuration(audio.duration))
-        audio.addEventListener('ended', onSongEnd)
-        audio.addEventListener('canplay', () => { onPlayStarted(); if (isPlaying) audio.play() })
+        if (!url) { onSongEnd(); return }
+        audioRef.current = buildAudio(url)
       })
-    } else if (currentSong.source === 'fma' && currentSong.streamUrl) {
-      const audio = new Audio(currentSong.streamUrl)
-      audio.volume = volume
-      audioRef.current = audio
-      audio.addEventListener('loadedmetadata', () => setDuration(audio.duration))
-      audio.addEventListener('ended', onSongEnd)
-      audio.addEventListener('canplay', () => { onPlayStarted(); if (isPlaying) audio.play() })
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong?.id])
 
-  // Play / Pause
+  // ── Play / Pause ─────────────────────────────────────────────────
   useEffect(() => {
     if (!currentSong) return
     if (currentSong.source === 'youtube') {
       if (isPlaying) ytRef.current?.playVideo?.()
       else ytRef.current?.pauseVideo?.()
-    } else {
-      if (!audioRef.current) return
+    } else if (audioRef.current) {
       if (isPlaying) audioRef.current.play().catch(() => {})
       else audioRef.current.pause()
     }
   }, [isPlaying, currentSong?.source])
 
-  // Volume
+  // ── Volume ───────────────────────────────────────────────────────
   useEffect(() => {
-    ytRef.current?.setVolume?.(volume * 100)
+    if (ytRef.current?.setVolume) ytRef.current.setVolume(Math.round(volume * 100))
     if (audioRef.current) audioRef.current.volume = volume
   }, [volume])
 
-  // Seek
+  // ── Seek (only on deliberate seek, not ticker) ───────────────────
   useEffect(() => {
-    if (seekPending.current === progress) return
-    seekPending.current = progress
+    const diff = Math.abs(progress - lastTickedProgress.current)
+    if (diff < 1.5) return
     if (!currentSong) return
-    if (currentSong.source === 'youtube') ytRef.current?.seekTo?.(progress, true)
-    else if (audioRef.current) audioRef.current.currentTime = progress
+    if (currentSong.source === 'youtube') {
+      ytRef.current?.seekTo?.(progress, true)
+    } else if (audioRef.current) {
+      audioRef.current.currentTime = progress
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress])
 
-  // Progress ticker
+  // ── Progress ticker ──────────────────────────────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!isPlaying) return
+      if (!isPlayingRef.current) return
+      let t = 0
       if (currentSong?.source === 'youtube' && ytRef.current) {
-        const t = ytRef.current.getCurrentTime?.() ?? 0
-        setProgress(t)
-      } else if (audioRef.current) {
-        setProgress(audioRef.current.currentTime)
+        t = ytRef.current.getCurrentTime?.() ?? 0
+      } else if (audioRef.current && !audioRef.current.paused) {
+        t = audioRef.current.currentTime
       }
-    }, 1000)
+      if (t > 0) {
+        lastTickedProgress.current = t
+        setProgress(t)
+      }
+    }, 500)
     return () => clearInterval(interval)
-  }, [isPlaying, currentSong?.source, setProgress])
+  }, [currentSong?.source, setProgress])
 
-  return <div ref={containerRef} className="hidden" aria-hidden />
+  // ── Load YT API once ─────────────────────────────────────────────
+  useEffect(() => {
+    window._ytReadyCallbacks = window._ytReadyCallbacks ?? []
+    if (window._ytReady) return
+    window.onYouTubeIframeAPIReady = () => {
+      window._ytReady = true
+      for (const cb of window._ytReadyCallbacks ?? []) {
+        try { cb() } catch (_) {}
+      }
+      window._ytReadyCallbacks = []
+    }
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const tag = document.createElement('script')
+      tag.src = 'https://www.youtube.com/iframe_api'
+      tag.async = true
+      document.head.appendChild(tag)
+    }
+  }, [])
+
+  return (
+    <div
+      ref={containerRef}
+      aria-hidden="true"
+      style={{ position: 'fixed', top: -9999, left: -9999, width: 1, height: 1, overflow: 'hidden', pointerEvents: 'none' }}
+    />
+  )
 }
