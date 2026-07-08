@@ -1,4 +1,5 @@
 import type { Song } from '../types'
+import { shuffleArray } from './recommendations'
 
 // ─── Invidious public instances (tried in random order) ─────────────
 const INVIDIOUS_INSTANCES = [
@@ -47,7 +48,7 @@ async function invidiousFetch(path: string): Promise<any> {
       if (!res.ok) continue
       const data = await res.json()
       if (Array.isArray(data) ? data.length > 0 : !!data) return data
-    } catch {
+    } catch (_) {
       // try next instance
     }
   }
@@ -85,15 +86,6 @@ export async function searchYouTubeByMood(mood: string, query: string): Promise<
   const live = await searchYouTube(query, 24)
   if (live.length >= 6) return live
   return shuffleArray([...FALLBACK_POOL]).slice(0, 20)
-}
-
-function shuffleArray<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -188,4 +180,53 @@ export const FALLBACK_POOL: Song[] = [
   { id: 'yt-IcrbM1l_BoI', title: 'Wake Me Up', artist: 'Avicii', thumbnail: 'https://i.ytimg.com/vi/IcrbM1l_BoI/mqdefault.jpg', duration: 251, source: 'youtube', videoId: 'IcrbM1l_BoI', genre: 'Electronic' },
   { id: 'yt-1AqSBRtRj8', title: 'Clarity', artist: 'Zedd ft. Foxes', thumbnail: 'https://i.ytimg.com/vi/IxxstCcJlsc/mqdefault.jpg', duration: 271, source: 'youtube', videoId: 'IxxstCcJlsc', genre: 'Electronic' },
   { id: 'yt-gNi_6U5Pm_o', title: 'Faded', artist: 'Alan Walker', thumbnail: 'https://i.ytimg.com/vi/60ItHLz5WEA/mqdefault.jpg', duration: 212, source: 'youtube', videoId: '60ItHLz5WEA', genre: 'Electronic' },
-  { id: 'yt-Q9ZAhHWNLb8', title: 'Spectre', artist: 'Alan Walker', thumbnail: 'https://i.ytimg.com/vi/AOeY-nDp7hI/mqdefault.jpg', duration: 227, source: 'youtube', videoId: 'AOeY-nDp7hI', genre: 'Electr
+  { id: 'yt-Q9ZAhHWNLb8', title: 'Spectre', artist: 'Alan Walker', thumbnail: 'https://i.ytimg.com/vi/AOeY-nDp7hI/mqdefault.jpg', duration: 227, source: 'youtube', videoId: 'AOeY-nDp7hI', genre: 'Electronic' },
+  { id: 'yt-3Yd3lFGUezM', title: 'Alone', artist: 'Alan Walker', thumbnail: 'https://i.ytimg.com/vi/1-xGerv5FOk/mqdefault.jpg', duration: 161, source: 'youtube', videoId: '1-xGerv5FOk', genre: 'Electronic' },
+
+  // ── K-POP ────────────────────────────────────────────────────────
+  { id: 'yt-gdZLi9oWNZg', title: 'Dynamite', artist: 'BTS', thumbnail: 'https://i.ytimg.com/vi/gdZLi9oWNZg/mqdefault.jpg', duration: 199, source: 'youtube', videoId: 'gdZLi9oWNZg', genre: 'K-Pop' },
+  { id: 'yt-ioNng23DkIM', title: 'How You Like That', artist: 'BLACKPINK', thumbnail: 'https://i.ytimg.com/vi/ioNng23DkIM/mqdefault.jpg', duration: 182, source: 'youtube', videoId: 'ioNng23DkIM', genre: 'K-Pop' },
+  { id: 'yt-MBdVXkSdhwU', title: 'Butter', artist: 'BTS', thumbnail: 'https://i.ytimg.com/vi/WMweEpGlu_U/mqdefault.jpg', duration: 164, source: 'youtube', videoId: 'WMweEpGlu_U', genre: 'K-Pop' },
+  { id: 'yt-0-q1KafFCLU', title: 'Kill This Love', artist: 'BLACKPINK', thumbnail: 'https://i.ytimg.com/vi/2S24-y0Ij3Y/mqdefault.jpg', duration: 176, source: 'youtube', videoId: '2S24-y0Ij3Y', genre: 'K-Pop' },
+  { id: 'yt-mdNSFj0S6HQ', title: 'Fake Love', artist: 'BTS', thumbnail: 'https://i.ytimg.com/vi/7C2z4GqqS5E/mqdefault.jpg', duration: 248, source: 'youtube', videoId: '7C2z4GqqS5E', genre: 'K-Pop' },
+  { id: 'yt-Hbb5GPxXF28', title: 'DNA', artist: 'BTS', thumbnail: 'https://i.ytimg.com/vi/MBdVXkSdhwU/mqdefault.jpg', duration: 208, source: 'youtube', videoId: 'MBdVXkSdhwU', genre: 'K-Pop' },
+  { id: 'yt-9pdj4iJD08s', title: 'Next Level', artist: 'aespa', thumbnail: 'https://i.ytimg.com/vi/4TWR90KJl84/mqdefault.jpg', duration: 231, source: 'youtube', videoId: '4TWR90KJl84', genre: 'K-Pop' },
+  { id: 'yt-R_vI4ORqOhg', title: 'ELEVEN', artist: 'IVE', thumbnail: 'https://i.ytimg.com/vi/0-q1KafFCLU/mqdefault.jpg', duration: 178, source: 'youtube', videoId: '0-q1KafFCLU', genre: 'K-Pop' },
+
+  // ── LATIN ────────────────────────────────────────────────────────
+  { id: 'yt-bM7SZ5SBzyY', title: 'Con Calma', artist: 'Daddy Yankee & Snow', thumbnail: 'https://i.ytimg.com/vi/bM7SZ5SBzyY/mqdefault.jpg', duration: 183, source: 'youtube', videoId: 'bM7SZ5SBzyY', genre: 'Latin' },
+  { id: 'yt-PivWY9wn5ps', title: 'Taki Taki', artist: 'DJ Snake ft. Selena Gomez', thumbnail: 'https://i.ytimg.com/vi/PivWY9wn5ps/mqdefault.jpg', duration: 199, source: 'youtube', videoId: 'PivWY9wn5ps', genre: 'Latin' },
+  { id: 'yt-TdkhBK7FVRY', title: 'Senorita', artist: 'Shawn Mendes & Camila Cabello', thumbnail: 'https://i.ytimg.com/vi/Pkh8UtuejGw/mqdefault.jpg', duration: 191, source: 'youtube', videoId: 'Pkh8UtuejGw', genre: 'Latin' },
+  { id: 'yt-BQ0mxQoTiTY', title: 'Havana', artist: 'Camila Cabello', thumbnail: 'https://i.ytimg.com/vi/HCjNJDNzw8Y/mqdefault.jpg', duration: 217, source: 'youtube', videoId: 'HCjNJDNzw8Y', genre: 'Latin' },
+
+  // ── JAZZ ─────────────────────────────────────────────────────────
+  { id: 'yt-CWzrABouyeE', title: 'What A Wonderful World', artist: 'Louis Armstrong', thumbnail: 'https://i.ytimg.com/vi/CWzrABouyeE/mqdefault.jpg', duration: 140, source: 'youtube', videoId: 'CWzrABouyeE', genre: 'Jazz' },
+  { id: 'yt-_Whz3hWFkWo', title: 'Fly Me To The Moon', artist: 'Frank Sinatra', thumbnail: 'https://i.ytimg.com/vi/_Whz3hWFkWo/mqdefault.jpg', duration: 147, source: 'youtube', videoId: '_Whz3hWFkWo', genre: 'Jazz' },
+  { id: 'yt-41GNcF_XN_I', title: "Isn't She Lovely", artist: 'Stevie Wonder', thumbnail: 'https://i.ytimg.com/vi/41GNcF_XN_I/mqdefault.jpg', duration: 371, source: 'youtube', videoId: '41GNcF_XN_I', genre: 'Jazz' },
+  { id: 'yt-ghOM2uBqxr4', title: 'La Vie En Rose', artist: 'Édith Piaf', thumbnail: 'https://i.ytimg.com/vi/ghOM2uBqxr4/mqdefault.jpg', duration: 193, source: 'youtube', videoId: 'ghOM2uBqxr4', genre: 'Jazz' },
+  { id: 'yt-Es12RD2BIAU', title: 'Take Five', artist: 'Dave Brubeck Quartet', thumbnail: 'https://i.ytimg.com/vi/vmDDOFXSgAs/mqdefault.jpg', duration: 324, source: 'youtube', videoId: 'vmDDOFXSgAs', genre: 'Jazz' },
+
+  // ── LO-FI / CHILL ────────────────────────────────────────────────
+  { id: 'yt-jfKfPfyJRdk', title: 'Lofi Hip Hop Radio', artist: 'Lofi Girl', thumbnail: 'https://i.ytimg.com/vi/jfKfPfyJRdk/mqdefault.jpg', duration: 3600, source: 'youtube', videoId: 'jfKfPfyJRdk', genre: 'Lo-fi' },
+  { id: 'yt-n61ULEU7CO0', title: 'Chill Lofi Study Beats', artist: 'Lofi Girl', thumbnail: 'https://i.ytimg.com/vi/n61ULEU7CO0/mqdefault.jpg', duration: 3600, source: 'youtube', videoId: 'n61ULEU7CO0', genre: 'Lo-fi' },
+  { id: 'yt-lTRiuFIWV54', title: 'Study Music Alpha Waves', artist: 'YellowBrickCinema', thumbnail: 'https://i.ytimg.com/vi/lTRiuFIWV54/mqdefault.jpg', duration: 10800, source: 'youtube', videoId: 'lTRiuFIWV54', genre: 'Ambient' },
+  { id: 'yt-77ZozI0rw7w', title: 'Coffee Shop Ambience', artist: 'Relaxing Cafe Music', thumbnail: 'https://i.ytimg.com/vi/3sL0omwElxw/mqdefault.jpg', duration: 7200, source: 'youtube', videoId: '3sL0omwElxw', genre: 'Lo-fi' },
+
+  // ── CLASSICAL ────────────────────────────────────────────────────
+  { id: 'yt-_CTYymbbEL4', title: 'Moonlight Sonata', artist: 'Beethoven', thumbnail: 'https://i.ytimg.com/vi/_CTYymbbEL4/mqdefault.jpg', duration: 348, source: 'youtube', videoId: '_CTYymbbEL4', genre: 'Classical' },
+  { id: 'yt-jNIGFgJkd8E', title: 'Canon in D', artist: 'Pachelbel', thumbnail: 'https://i.ytimg.com/vi/NlprozGcs98/mqdefault.jpg', duration: 315, source: 'youtube', videoId: 'NlprozGcs98', genre: 'Classical' },
+  { id: 'yt-BaW_jenozKc', title: 'Clair de Lune', artist: 'Debussy', thumbnail: 'https://i.ytimg.com/vi/CvFH_6DNRCY/mqdefault.jpg', duration: 283, source: 'youtube', videoId: 'CvFH_6DNRCY', genre: 'Classical' },
+  { id: 'yt-3VnABbMNaPs', title: 'The Four Seasons - Spring', artist: 'Vivaldi', thumbnail: 'https://i.ytimg.com/vi/5PkNFk4p4dY/mqdefault.jpg', duration: 198, source: 'youtube', videoId: '5PkNFk4p4dY', genre: 'Classical' },
+  { id: 'yt-y5RvPCmBJE4', title: 'Nocturne Op. 9', artist: 'Chopin', thumbnail: 'https://i.ytimg.com/vi/9E6b3swbnWg/mqdefault.jpg', duration: 272, source: 'youtube', videoId: '9E6b3swbnWg', genre: 'Classical' },
+
+  // ── MOTIVATIONAL / WORKOUT ───────────────────────────────────────
+  { id: 'yt-btPJPFnesV4', title: 'Eye of the Tiger', artist: 'Survivor', thumbnail: 'https://i.ytimg.com/vi/btPJPFnesV4/mqdefault.jpg', duration: 245, source: 'youtube', videoId: 'btPJPFnesV4', genre: 'Rock' },
+  { id: 'yt-iX-QaNzd-0Y', title: "Can't Stop the Feeling!", artist: 'Justin Timberlake', thumbnail: 'https://i.ytimg.com/vi/ru0K8uLPGMM/mqdefault.jpg', duration: 237, source: 'youtube', videoId: 'ru0K8uLPGMM', genre: 'Pop' },
+  { id: 'yt-gNi_6U5Pm2o', title: 'Run The World (Girls)', artist: 'Beyoncé', thumbnail: 'https://i.ytimg.com/vi/VBmMU_iwe6U/mqdefault.jpg', duration: 236, source: 'youtube', videoId: 'VBmMU_iwe6U', genre: 'Pop' },
+
+  // ── ROMANTIC ─────────────────────────────────────────────────────
+  { id: 'yt-450p7goxZqg', title: 'All of Me', artist: 'John Legend', thumbnail: 'https://i.ytimg.com/vi/450p7goxZqg/mqdefault.jpg', duration: 269, source: 'youtube', videoId: '450p7goxZqg', genre: 'R&B' },
+  { id: 'yt-LjhCEhWiKXk', title: 'Perfect', artist: 'Ed Sheeran', thumbnail: 'https://i.ytimg.com/vi/2Vv-BfVoq4g/mqdefault.jpg', duration: 263, source: 'youtube', videoId: '2Vv-BfVoq4g', genre: 'Pop' },
+  { id: 'yt-rtOvBOTyX00', title: 'A Thousand Years', artist: 'Christina Perri', thumbnail: 'https://i.ytimg.com/vi/rtOvBOTyX00/mqdefault.jpg', duration: 285, source: 'youtube', videoId: 'rtOvBOTyX00', genre: 'Pop' },
+  { id: 'yt-OA6mWpHfVLQ', title: 'Thinking Out Loud', artist: 'Ed Sheeran', thumbnail: 'https://i.ytimg.com/vi/lp-EO5I60KA/mqdefault.jpg', duration: 281, source: 'youtube', videoId: 'lp-EO5I60KA', genre: 'Pop' },
+]
